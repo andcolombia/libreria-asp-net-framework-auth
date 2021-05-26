@@ -1,2 +1,2 @@
-# libreria-asp-net-framework-auth
-Repositorio con el ejemplo de integración al Servicio de Autenticación Digital con ASP .Net Framework
+# Librería de Integración con ASP .NET Framework
+Repositorio con el ejemplo de integración al Servicio de Autenticación Digital con ASP .NET Framework
