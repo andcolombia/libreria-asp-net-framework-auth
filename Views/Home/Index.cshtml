@@ -1,0 +1,31 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+@if (!Request.IsAuthenticated)
+{
+
+    <div style="margin-top: 1rem">
+        <a href="@Url.Action("SignIn", "Home")" style="text-decoration: none;">
+            Sign In
+        </a>
+    </div>
+}
+else
+{
+
+    var userClaims = User.Identity as System.Security.Claims.ClaimsIdentity;
+    var user = userClaims.FindFirst("aud");
+
+    <span><br />Hello <b style="font-size:2rem">@user</b> </span>
+    <br />
+    <br />
+    @Html.ActionLink("See Your Claims", "Index", "Claims", null, new { @class = "btn btn-primary" })
+    <br />
+    <br />
+    @Html.ActionLink("Sign out", "SignOut", "Home", null, new { @class = "btn btn-danger" })
+}
+
+@if (!string.IsNullOrWhiteSpace(Request.QueryString["errormessage"]))
+{
+    <div style="background-color:red;color:white;font-weight: bold;">Error: @Request.QueryString["errormessage"]</div>
+}
