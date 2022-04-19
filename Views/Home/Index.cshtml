@@ -4,11 +4,29 @@
 @if (!Request.IsAuthenticated)
 {
 
-    <div style="margin-top: 1rem">
-        <a href="@Url.Action("SignIn", "Home")" style="text-decoration: none;">
-            Sign In
-        </a>
-    </div>
+<div style="margin-top: 1rem">
+    @using (Html.BeginForm("SignIn", "Home", FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+        <div class="col-md-12" style="margin:10px">
+            <select class="form-control" name="TipoIdentificacion" required>
+                <option value="EM">Correo electrónico</option>
+                <option value="CC">Cédula de ciudadanía</option>
+            </select>
+        </div>
+        <div class="col-md-12" style="margin:10px">
+            <input type="text" class="form-control" name="Identificacion" placeholder="Identificación" required>
+        </div>
+        <div class="col-md-12" style="margin:10px">
+            <button class="btn btn-primary" type="submit" name="Accion" value="login">
+                Iniciar sesión
+            </button>
+            <button class="btn btn-primary" type="submit" name="Accion" value="register">
+                Registrar
+            </button>
+        </div>
+    }
+</div>
 }
 else
 {

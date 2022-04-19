@@ -52,7 +52,6 @@ namespace MvcDotNetClient
                     // PostLogoutRedirectUri is the page that users will be redirected to after sign-out.
                     PostLogoutRedirectUri = redirectUriLogout,
                     Scope = "openid email",
-
                     UseTokenLifetime = false,
                     SignInAsAuthenticationType = OpenIdConnectAuthenticationDefaults.AuthenticationType,
 
@@ -87,6 +86,29 @@ namespace MvcDotNetClient
                                     n.OwinContext.Authentication.User.FindFirst("id_token").Value;
                                 n.ProtocolMessage.IdTokenHint = idTokenHint;
                             }
+                            else if (n.ProtocolMessage.RequestType == OpenIdConnectRequestType.Authentication)
+                            {
+                                if (n.Request.Path.Value == "/Home/SignIn" || n.Request.Path.Value == "/Claims/Personalizar")
+                                {
+                                    var stateQueryString = n.ProtocolMessage.State.Split('=');
+                                    var protectedState = stateQueryString[1];
+                                    var state = n.Options.StateDataFormat.Unprotect(protectedState);
+                                    if (state.Dictionary.ContainsKey("login_hint"))
+                                    {
+                                        n.ProtocolMessage.LoginHint = state.Dictionary["login_hint"];
+                                    }
+                                    if (state.Dictionary.ContainsKey("acr_values"))
+                                    {
+                                        n.ProtocolMessage.AcrValues = state.Dictionary["acr_values"];
+                                    }
+                                }
+                                else
+                                {
+                                    n.ProtocolMessage.Prompt = "none";
+                                }
+
+
+                            }
                             return Task.FromResult(0);
                         }
                     }
@@ -101,8 +123,16 @@ namespace MvcDotNetClient
         /// <returns></returns>
         private Task OnAuthenticationFailed(AuthenticationFailedNotification<OpenIdConnectMessage, OpenIdConnectAuthenticationOptions> context)
         {
-            context.HandleResponse();
-            context.Response.Redirect("/?errormessage=" + context.Exception.Message);
+            if (context.Exception.Message.Contains("login_required"))
+            {
+                context.Response.Redirect("/Home/SignOut");
+                context.HandleResponse();
+            }
+            else
+            {
+                context.HandleResponse();
+                context.Response.Redirect("/?errormessage=" + context.Exception.Message);
+            }
             return Task.FromResult(0);
         }
     }

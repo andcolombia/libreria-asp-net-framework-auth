@@ -1,4 +1,7 @@
 ﻿using IdentityModel.Client;
+using Microsoft.Owin;
+using Microsoft.Owin.Security;
+using Microsoft.Owin.Security.OpenIdConnect;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -19,6 +22,18 @@ namespace MvcDotNetClient.Controllers
         /// <returns></returns>
         public async Task<ActionResult> IndexAsync()
         {
+            var url = Session["url"].ToString();
+            if (string.IsNullOrEmpty(url))
+            {
+                Session["url"] = "/Claims";
+                string redirectUri = ConfigurationManager.AppSettings["redirectUri"];
+                var authenticationProperties = new AuthenticationProperties();
+                authenticationProperties.RedirectUri = redirectUri;
+                var auth = HttpContext.GetOwinContext().Authentication;
+                auth.Challenge(authenticationProperties);
+                return Json(new { }, "application/json", JsonRequestBehavior.AllowGet);
+            }
+            Session["url"] = string.Empty; 
             var httpClient = new HttpClient();
             var userInfo = new UserInfoRequest();
 
@@ -44,6 +59,32 @@ namespace MvcDotNetClient.Controllers
             ViewBag.userClaims = userInfoProfile.Claims;
 
             return View();
+
+        }
+
+        public async Task PersonalizarAsync()
+        {
+            Session["url"] = string.Empty;
+            var authenticationProperties = new AuthenticationProperties();
+            var httpClient = new HttpClient();
+            var userInfo = new UserInfoRequest();
+            var userClaims = User.Identity as System.Security.Claims.ClaimsIdentity;
+
+            userInfo.Address = ConfigurationManager.AppSettings["Authority"] + "/connect/userinfo";
+            userInfo.Token = userClaims?.FindFirst("access_token")?.Value;
+            var userInfoProfile = await httpClient.GetUserInfoAsync(userInfo);
+
+            foreach(var claim in userInfoProfile.Claims)
+            {
+                if(claim.Type == "given_name")
+                {
+                    authenticationProperties.Dictionary.Add("login_hint", claim.Value);
+                }
+            }
+
+            authenticationProperties.Dictionary.Add("acr_values", string.Format("action:manage"));
+            var auth = HttpContext.GetOwinContext().Authentication;
+            auth.Challenge(authenticationProperties);
         }
     }
 }

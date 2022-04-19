@@ -14,36 +14,61 @@ namespace MvcDotNetClient.Controllers
     {
         public ActionResult Index()
         {
-
+            Session["url"] = string.Empty;
             return View();
         }
 
         public ActionResult About()
         {
             ViewBag.Message = "Your application description page.";
-
+            var url = Session["url"].ToString();
+            if (!string.IsNullOrEmpty(url))
+            {
+                return Redirect(url);
+            }
             return View();
         }
 
         public ActionResult Contact()
         {
+            Session["url"] = string.Empty;
             ViewBag.Message = "Your contact page.";
 
             return View();
         }
-
         /// <summary>
         /// Send an OpenID Connect sign-in request.
         /// </summary>
-        public void SignIn()
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public void SignIn(FormCollection formCollection)
         {
+            Session["url"] = string.Empty;
             if (!Request.IsAuthenticated)
             {
-
+                string _tipoIdentificacion = formCollection["TipoIdentificacion"];
+                string _identificacion = formCollection["Identificacion"];
+                string _accion = formCollection["Accion"];
                 string redirectUri = ConfigurationManager.AppSettings["redirectUri"];
+                var authenticationProperties = new AuthenticationProperties();
+                if(!string.IsNullOrEmpty(_tipoIdentificacion) && !string.IsNullOrEmpty(_identificacion))
+                    authenticationProperties.Dictionary.Add("login_hint", string.Format("{0},{1}", _tipoIdentificacion, _identificacion));
+                if (!string.IsNullOrEmpty(_accion))
+                {
+                    if ( _accion == "register")
+                    {
+                        string _nivel = "loa:2";
+                        if (_tipoIdentificacion == "EM")
+                            _nivel = "loa:1";
+                        authenticationProperties.Dictionary.Add("acr_values", string.Format("action:{0} {1}", _accion, _nivel));
+                    }
+                    else
+                        authenticationProperties.Dictionary.Add("acr_values", string.Format("action:{0}", _accion));
+                }
+                    
+                authenticationProperties.RedirectUri = redirectUri;
                 var auth = HttpContext.GetOwinContext().Authentication;
-                auth.Challenge(
-                    new AuthenticationProperties { RedirectUri = redirectUri });
+                auth.Challenge(authenticationProperties);
             }
         }
 
@@ -52,6 +77,7 @@ namespace MvcDotNetClient.Controllers
         /// </summary>
         public ActionResult SignOut()
         {
+            Session["url"] = string.Empty;
             if (Request.GetOwinContext().Authentication.User.Identity.IsAuthenticated)
             {
                 HttpContext.GetOwinContext().Authentication.SignOut(
